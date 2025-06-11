@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Panneaux Cool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #282c34;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        #create-form {
+            margin-bottom: 20px;
+        }
+        #sign-text {
+            padding: 10px;
+            font-size: 16px;
+        }
+        #create-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-left: 10px;
+        }
+        .sign {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            background-color: #fff;
+            color: #000;
+            font-size: 48px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px;
+        }
+        .vote {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            padding: 5px;
+            cursor: pointer;
+        }
+        #signs {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        #random-btn {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Panneaux Cool</h1>
+    <div id="create-form">
+        <input type="text" id="sign-text" placeholder="Écris ton panneau" maxlength="8">
+        <button id="create-btn">Créer</button>
+        <button id="random-btn">Aléatoire</button>
+    </div>
+    <div id="signs"></div>
+    <script>
+        const signTextInput = document.getElementById('sign-text');
+        const createBtn = document.getElementById('create-btn');
+        const randomBtn = document.getElementById('random-btn');
+        const signsContainer = document.getElementById('signs');
+
+        async function loadSigns() {
+            const res = await fetch('/signs');
+            const signs = await res.json();
+            signsContainer.innerHTML = '';
+            signs.forEach(sign => {
+                const div = document.createElement('div');
+                div.className = 'sign';
+                div.id = 'sign-' + sign.id;
+                div.textContent = sign.text;
+
+                const voteBtn = document.createElement('button');
+                voteBtn.className = 'vote';
+                voteBtn.textContent = '👍 ' + sign.votes;
+                voteBtn.addEventListener('click', async () => {
+                    await fetch('/signs/' + sign.id + '/vote', {method: 'POST'});
+                    loadSigns();
+                });
+
+                div.appendChild(voteBtn);
+                signsContainer.appendChild(div);
+            });
+        }
+
+        createBtn.addEventListener('click', async () => {
+            const text = signTextInput.value.trim();
+            if (!text) return;
+            await fetch('/signs', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text})
+            });
+            signTextInput.value = '';
+            loadSigns();
+        });
+
+        randomBtn.addEventListener('click', async () => {
+            const res = await fetch('/signs/random');
+            if (!res.ok) return;
+            const sign = await res.json();
+            const el = document.getElementById('sign-' + sign.id);
+            if (el) {
+                el.scrollIntoView({behavior: 'smooth', block: 'center'});
+            }
+        });
+
+        loadSigns();
+    </script>
+</body>
+</html>
